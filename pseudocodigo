@@ -1,0 +1,18 @@
+#include<windows.h>
+
+
+BOOL versionOperativo();
+BOOL obtenerBot();
+BOOL obtenerLibreriasPython();
+BOOL libreriasPythonInstaladas();
+BOOL copiarBotSistema();
+BOOL añadirBotComoServicio();
+BOOL lanzarBot();
+
+int main(){
+
+
+
+
+return 0;
+}

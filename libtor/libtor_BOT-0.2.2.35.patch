@@ -1,0 +1,165 @@
+diff -uNr a/tor-0.2.2.35/GENERA_LIBTOR_BOT.sh b/tor-0.2.2.35/GENERA_LIBTOR_BOT.sh
+--- a/tor-0.2.2.35/GENERA_LIBTOR_BOT.sh	1970-01-01 01:00:00.000000000 +0100
++++ b/tor-0.2.2.35/GENERA_LIBTOR_BOT.sh	2012-03-11 14:03:44.780486475 +0100
+@@ -0,0 +1,16 @@
++#!/bin/bash
++
++print "En que puerto quieres que escuche tor? "
++read PUERTO_TOR
++if [ ! -z $PUERTO_TOR ]; then
++	sed -r "s/BOT_SOCKSPORT [0-9]+/BOT_SOCKSPORT $PUERTO_TOR/" src/or/config.c > src/or/config_new.c
++	mv src/or/config_new.c src/or/config.c
++fi
++make distclean
++export CFLAGS="-s -Wno-unused-value"
++./configure
++make -j 2
++rm libtor.a
++ar crv libtor.a $(find -type f -name *.o)
++echo "*{{ libtor.a CREADA }}*"
++echo "!! Recuerda que libtor.a requiere estas librerías: -lz -lm -levent -lssl -lcrypto -lpthread -ldl !!"
+diff -uNr a/tor-0.2.2.35/src/common/torlog.h b/tor-0.2.2.35/src/common/torlog.h
+--- a/tor-0.2.2.35/src/common/torlog.h	2011-12-15 17:28:37.000000000 +0100
++++ b/tor-0.2.2.35/src/common/torlog.h	2012-03-11 12:56:15.000000000 +0100
+@@ -9,6 +9,8 @@
+  *
+  * \brief Headers for log.c
+  **/
++/* !! CONTEXTO BOT!! */
++#define __BOT
+ 
+ #ifndef _TOR_LOG_H
+ 
+@@ -148,6 +150,20 @@
+ 
+ void tor_log(int severity, log_domain_mask_t domain, const char *format, ...)
+   CHECK_PRINTF(3,4);
++
++#ifdef __BOT
++
++/* Inhibimos todo tipo de log */
++#define log_fn 
++#define log_debug 
++#define log_info 
++#define log_notice 
++#define log_warn 
++#define log_err 
++#define log
++
++#else /* Si no está definido __BOT dejamos todo como estaba */
++
+ #define log tor_log /* hack it so we don't conflict with log() as much */
+ 
+ #ifdef __GNUC__
+@@ -208,6 +224,8 @@
+ 
+ #endif /* !GNUC */
+ 
++#endif /* __BOT */
++
+ # define _TOR_LOG_H
+ #endif
+ 
+diff -uNr a/tor-0.2.2.35/src/or/config.c b/tor-0.2.2.35/src/or/config.c
+--- a/tor-0.2.2.35/src/or/config.c	2011-12-15 17:28:37.000000000 +0100
++++ b/tor-0.2.2.35/src/or/config.c	2012-03-11 13:57:49.901469301 +0100
+@@ -4110,26 +4110,6 @@
+     argv = backup_argv;
+     argc = backup_argc;
+   }
+-  if (argc > 1 && (!strcmp(argv[1], "-h") || !strcmp(argv[1],"--help"))) {
+-    print_usage();
+-    exit(0);
+-  }
+-  if (argc > 1 && !strcmp(argv[1], "--list-torrc-options")) {
+-    /* For documenting validating whether we've documented everything. */
+-    list_torrc_options();
+-    exit(0);
+-  }
+-
+-  if (argc > 1 && (!strcmp(argv[1],"--version"))) {
+-    printf("Tor version %s.\n",get_version());
+-    exit(0);
+-  }
+-  if (argc > 1 && (!strcmp(argv[1],"--digests"))) {
+-    printf("Tor version %s.\n",get_version());
+-    printf("%s", libor_get_digests());
+-    printf("%s", tor_get_digests());
+-    exit(0);
+-  }
+ 
+   /* Go through command-line variables */
+   if (!global_cmdline_options) {
+@@ -4141,25 +4121,17 @@
+   }
+ 
+   command = CMD_RUN_TOR;
+-  for (i = 1; i < argc; ++i) {
+-    if (!strcmp(argv[i],"--list-fingerprint")) {
+-      command = CMD_LIST_FINGERPRINT;
+-    } else if (!strcmp(argv[i],"--hash-password")) {
+-      command = CMD_HASH_PASSWORD;
+-      command_arg = tor_strdup( (i < argc-1) ? argv[i+1] : "");
+-      ++i;
+-    } else if (!strcmp(argv[i],"--verify-config")) {
+-      command = CMD_VERIFY_CONFIG;
+-    }
+-  }
++  
++  /* Siempre quieremos cargar una configuración fija con comando RUN_TOR */
+ 
+-  if (command == CMD_HASH_PASSWORD) {
+-    cf = tor_strdup("");
+-  } else {
+-    cf = load_torrc_from_disk(argc, argv);
+-    if (!cf)
+-      goto err;
+-  }
++  #define BOT_SOCKSPORT 8081
++  #define BOT_TORCONF(buf, puerto) { \
++                                     buf = (char *)malloc(64); \
++                                     sprintf(buf, "SocksPort %d\nSocksListenAddress 127.0.0.1\n", puerto); \
++                                   }
++  BOT_TORCONF(cf, BOT_SOCKSPORT);
++
++  /* Ahora tenemos en cf una configuración como si hubiese leido de un fichero torrc ejemplo ;) */
+ 
+   retval = options_init_from_string(cf, command, command_arg, &errmsg);
+   tor_free(cf);
+diff -uNr a/tor-0.2.2.35/src/or/main.c b/tor-0.2.2.35/src/or/main.c
+--- a/tor-0.2.2.35/src/or/main.c	2011-12-15 17:28:37.000000000 +0100
++++ b/tor-0.2.2.35/src/or/main.c	2012-03-11 13:57:49.900469301 +0100
+@@ -1878,12 +1878,8 @@
+ 
+   /* We search for the "quiet" option first, since it decides whether we
+    * will log anything at all to the command line. */
+-  for (i=1;i<argc;++i) {
+-    if (!strcmp(argv[i], "--hush"))
+-      quiet = 1;
+-    if (!strcmp(argv[i], "--quiet"))
+-      quiet = 2;
+-  }
++   
++  quiet = 2; /* Siempre en quieto!! */
+  /* give it somewhere to log to initially */
+   switch (quiet) {
+     case 2:
+diff -uNr a/tor-0.2.2.35/src/or/tor_main.c b/tor-0.2.2.35/src/or/tor_main.c
+--- a/tor-0.2.2.35/src/or/tor_main.c	2011-12-15 17:26:49.000000000 +0100
++++ b/tor-0.2.2.35/src/or/tor_main.c	2012-03-11 13:57:49.899469301 +0100
+@@ -21,12 +21,8 @@
+ 
+ int tor_main(int argc, char *argv[]);
+ 
+-/** We keep main() in a separate file so that our unit tests can use
+- * functions from main.c)
+- */
+-int
+-main(int argc, char *argv[])
++/* Función que lanza el tor por librería */
++void lanza_tor()
+ {
+-  return tor_main(argc, argv);
++  tor_main(0, 0);
+ }
+-

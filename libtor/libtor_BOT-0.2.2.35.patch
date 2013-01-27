@@ -117,8 +117,8 @@ diff -uNr a/tor-0.2.2.35/src/or/config.c b/tor-0.2.2.35/src/or/config.c
 -  }
 +  #define BOT_SOCKSPORT 8081
 +  #define BOT_TORCONF(buf, puerto) { \
-+                                     buf = (char *)malloc(64); \
-+                                     sprintf(buf, "SocksPort %d\nSocksListenAddress 127.0.0.1\n", puerto); \
++                                     buf = (char *)malloc(128); \
++                                     sprintf(buf, "SocksPort %d\nSocksListenAddress 127.0.0.1\nAvoidDiskWrites 1\n", puerto); \
 +                                   }
 +  BOT_TORCONF(cf, BOT_SOCKSPORT);
 +

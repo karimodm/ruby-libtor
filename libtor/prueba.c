@@ -1,5 +1,6 @@
-/* Compila con -L tor-0.2.2.35 -ltor -lz -lm -levent -lssl -lcrypto -lpthread -ldl */
-void lanza_tor();
+/* Compila con -L tor-0.2.3.25 -ltor -lz -lm -levent -lssl -lcrypto -lpthread -ldl */
+#include <stdlib.h>
+void lanza_tor(char *); /* Recibe puerto o NULL per il valore staticamente compilato */
 int main() {
-  lanza_tor();
+  lanza_tor("1122");
 }

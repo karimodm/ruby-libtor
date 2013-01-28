@@ -7742,7 +7742,7 @@ if ${tor_cv_cflags__fPIE+:} false; then :
 else
 
     tor_saved_CFLAGS="$CFLAGS"
-    CFLAGS="$CFLAGS -pedantic -Werror -fPIE"
+    CFLAGS="$CFLAGS -pedantic -Werror"
     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -7766,7 +7766,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $tor_cv_cflags__fPIE" >&5
 $as_echo "$tor_cv_cflags__fPIE" >&6; }
   if test x$tor_cv_cflags__fPIE = xyes; then
-    CFLAGS="$CFLAGS -fPIE"
+    CFLAGS="$CFLAGS "
   fi
 
 

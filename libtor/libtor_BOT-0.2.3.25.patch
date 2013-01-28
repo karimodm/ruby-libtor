@@ -1,6 +1,6 @@
-diff -Nru tor-0.2.3.25_ORIG/GENERA_LIBTOR_BOT.sh tor-0.2.3.25/GENERA_LIBTOR_BOT.sh
---- tor-0.2.3.25_ORIG/GENERA_LIBTOR_BOT.sh	1970-01-01 01:00:00.000000000 +0100
-+++ tor-0.2.3.25/GENERA_LIBTOR_BOT.sh	2013-01-27 21:53:59.016059516 +0100
+diff -urN tor-0.2.3.25_orig/GENERA_LIBTOR_BOT.sh tor-0.2.3.25/GENERA_LIBTOR_BOT.sh
+--- tor-0.2.3.25_orig/GENERA_LIBTOR_BOT.sh	1970-01-01 01:00:00.000000000 +0100
++++ tor-0.2.3.25/GENERA_LIBTOR_BOT.sh	2013-01-28 22:35:36.005545762 +0100
 @@ -0,0 +1,16 @@
 +#!/bin/bash
 +
@@ -10,14 +10,35 @@ diff -Nru tor-0.2.3.25_ORIG/GENERA_LIBTOR_BOT.sh tor-0.2.3.25/GENERA_LIBTOR_BOT.
 +	sed -r "s/BOT_SOCKSPORT [0-9]+/BOT_SOCKSPORT $PUERTO_TOR/" src/or/config.c > src/or/config_new.c
 +	mv src/or/config_new.c src/or/config.c
 +fi
++rm libtor.a
 +make distclean
-+export CFLAGS="-s -Wno-unused-value"
++export CFLAGS="-s -Wno-unused-value -fpic -fPIC"
 +./configure
 +make -j 2
-+rm libtor.a
 +ar crv libtor.a $(find -type f -name *.o)
 +echo "*{{ libtor.a CREADA }}*"
 +echo "!! Recuerda que libtor.a requiere estas librerías: -lz -lm -levent -lssl -lcrypto -lpthread -ldl !!"
+diff -urN tor-0.2.3.25_orig/configure tor-0.2.3.25/configure
+--- tor-0.2.3.25_orig/configure	2012-11-19 23:00:43.000000000 +0100
++++ tor-0.2.3.25/configure	2013-01-28 21:52:35.668771803 +0100
+@@ -7742,7 +7742,7 @@
+ else
+ 
+     tor_saved_CFLAGS="$CFLAGS"
+-    CFLAGS="$CFLAGS -pedantic -Werror -fPIE"
++    CFLAGS="$CFLAGS -pedantic -Werror"
+     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ 
+@@ -7766,7 +7766,7 @@
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $tor_cv_cflags__fPIE" >&5
+ $as_echo "$tor_cv_cflags__fPIE" >&6; }
+   if test x$tor_cv_cflags__fPIE = xyes; then
+-    CFLAGS="$CFLAGS -fPIE"
++    CFLAGS="$CFLAGS "
+   fi
+ 
+ 
 diff -Nru tor-0.2.3.25_ORIG/src/common/torlog.h tor-0.2.3.25/src/common/torlog.h
 --- tor-0.2.3.25_ORIG/src/common/torlog.h	2012-11-19 22:24:38.000000000 +0100
 +++ tor-0.2.3.25/src/common/torlog.h	2013-01-27 21:52:24.464008022 +0100
